@@ -1,8 +1,25 @@
 import os
 import asyncio
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
+
+# خادم ويب مدمج لفتح المنفذ وإرضاء متطلبات Render
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        return
+
+def start_health_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    server.serve_forever()
 
 BOT_TOKEN = "8950979397:AAFQF-5yTZO6oa_siI7tY6Owvij2av_DDsA"
 bot = AsyncTeleBot(BOT_TOKEN)
@@ -62,4 +79,6 @@ async def callback_handler(call):
         await bot.answer_callback_query(call.id, "🎬 جاري جلب دقة HD...")
 
 if __name__ == '__main__':
+    # تشغيل خادم المنفذ في مسار منفصل لمنع إيقاف الخدمة
+    threading.Thread(target=start_health_server, daemon=True).start()
     asyncio.run(bot.polling(non_stop=True))
