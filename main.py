@@ -1,4 +1,5 @@
 import os
+import json
 import asyncio
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
@@ -21,17 +22,46 @@ def start_health_server():
     server = HTTPServer(("0.0.0.0", port), HealthHandler)
     server.serve_forever()
 
-# التوكن الصحيح والمؤمن
 BOT_TOKEN = "8950979397:AAFauKlk5KBSmxxlLBA13Cwj55gJgf7am4U"
 bot = AsyncTeleBot(BOT_TOKEN)
 
 DOWNLOAD_DIR = "downloads"
+STATS_FILE = "stats.json"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+# إدارة الإحصائيات
+def load_stats():
+    if os.path.exists(STATS_FILE):
+        try:
+            with open(STATS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"users": [], "downloads_count": 0}
+
+def save_stats(data):
+    try:
+        with open(STATS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+def track_user(user_id):
+    data = load_stats()
+    if user_id not in data["users"]:
+        data["users"].append(user_id)
+        save_stats(data)
+
+def track_download():
+    data = load_stats()
+    data["downloads_count"] = data.get("downloads_count", 0) + 1
+    save_stats(data)
 
 user_urls = {}
 
 @bot.message_handler(commands=['start'])
 async def send_welcome(message):
+    track_user(message.from_user.id)
     user_name = message.from_user.first_name or "صديقي"
     
     welcome_text = (
@@ -59,7 +89,7 @@ async def send_welcome(message):
     btn_snap = InlineKeyboardButton("سناب شات", callback_data="info_snap")
     btn_tw = InlineKeyboardButton("تويتر (X)", callback_data="info_tw")
     btn_pin = InlineKeyboardButton("بنترست", callback_data="info_pin")
-    btn_stats = InlineKeyboardButton("📊 إحصائياتي", callback_data="info_stats")
+    btn_stats = InlineKeyboardButton("📊 إحصائياتي", callback_data="show_stats")
     
     bot_info = await bot.get_me()
     btn_add = InlineKeyboardButton("➕ أضف البوت لمجموعتك", url=f"https://t.me/{bot_info.username}?startgroup=true")
@@ -74,8 +104,28 @@ async def send_welcome(message):
 
     await bot.reply_to(message, welcome_text, reply_markup=markup)
 
+@bot.callback_query_handler(func=lambda call: call.data == "show_stats")
+async def stats_callback_handler(call):
+    stats = load_stats()
+    total_users = len(stats.get("users", []))
+    total_downloads = stats.get("downloads_count", 0)
+    
+    stats_text = (
+        f"📊 **إحصائيات البوت العامة:**\n\n"
+        f"👥 عدد المستخدمين: **{total_users}** مستخدم\n"
+        f"📥 إجمالي التحميلات الناجحة: **{total_downloads}** عملية تحميل\n\n"
+        f"⚡ البوت يعمل بكفاءة وعلى مدار الساعة."
+    )
+    await bot.answer_callback_query(call.id)
+    await bot.send_message(call.message.chat.id, stats_text, parse_mode="Markdown")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("info_"))
+async def info_callback_handler(call):
+    await bot.answer_callback_query(call.id, "أرسل رابط المنصة مباشرة ليتم تحميله فوراً!", show_alert=True)
+
 @bot.message_handler(func=lambda message: message.text and ("http://" in message.text or "https://" in message.text))
 async def handle_url(message):
+    track_user(message.from_user.id)
     url = message.text.strip()
     status_msg = await bot.reply_to(message, "⏳ جاري التحميل والمعالجة...")
     
@@ -91,6 +141,7 @@ async def handle_url(message):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, lambda: yt_dlp.YoutubeDL(ydl_opts).download([url]))
 
+        track_download()
         user_urls[message.message_id] = url
 
         markup = InlineKeyboardMarkup()
@@ -115,10 +166,6 @@ async def handle_url(message):
         if os.path.exists(file_path):
             os.remove(file_path)
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("info_"))
-async def info_callback_handler(call):
-    await bot.answer_callback_query(call.id, "أرسل رابط المنصة مباشرة ليتم تحميله فوراً!", show_alert=True)
-
 @bot.callback_query_handler(func=lambda call: call.data.startswith("audio|") or call.data.startswith("hd|"))
 async def action_callback_handler(call):
     action, msg_id_str = call.data.split("|")
@@ -142,6 +189,7 @@ async def action_callback_handler(call):
         try:
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, lambda: yt_dlp.YoutubeDL(ydl_opts).download([url]))
+            track_download()
             with open(hd_path, 'rb') as video_file:
                 await bot.send_video(chat_id=call.message.chat.id, video=video_file, caption="🎬 تم تنزيل الفيديو بأعلى جودة (HD) بنجاح!")
             await bot.delete_message(call.message.chat.id, wait_msg.message_id)
@@ -169,6 +217,7 @@ async def action_callback_handler(call):
         try:
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, lambda: yt_dlp.YoutubeDL(ydl_opts).download([url]))
+            track_download()
             target_file = audio_path if os.path.exists(audio_path) else f"{audio_path}.mp3"
             with open(target_file, 'rb') as audio_file:
                 await bot.send_audio(chat_id=call.message.chat.id, audio=audio_file, caption="🎵 تم استخراج الصوت بنجاح!")
