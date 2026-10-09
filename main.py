@@ -21,7 +21,7 @@ def start_health_server():
     server = HTTPServer(("0.0.0.0", port), HealthHandler)
     server.serve_forever()
 
-# التوكن الجديد المؤمن
+# التوكن الصحيح والمؤمن
 BOT_TOKEN = "8950979397:AAFauKlk5KBSmxxlLBA13Cwj55gJgf7am4U"
 bot = AsyncTeleBot(BOT_TOKEN)
 
@@ -51,16 +51,18 @@ async def send_welcome(message):
     )
 
     markup = InlineKeyboardMarkup(row_width=2)
-    btn_yt = InlineKeyboardButton("اليوتيوب", callback_data="info_yt")
-    btn_ig = InlineKeyboardButton("الانستكرام", callback_data="info_ig")
-    btn_fb = InlineKeyboardButton("الفيسبوك", callback_data="info_fb")
-    btn_tt = InlineKeyboardButton("التيك توك", callback_data="info_tt")
+    btn_yt = InlineKeyboardButton("يوتيوب", callback_data="info_yt")
+    btn_ig = InlineKeyboardButton("إنستغرام", callback_data="info_ig")
+    btn_fb = InlineKeyboardButton("فيسبوك", callback_data="info_fb")
+    btn_tt = InlineKeyboardButton("تيك توك", callback_data="info_tt")
     btn_likee = InlineKeyboardButton("لايكي", callback_data="info_likee")
-    btn_snap = InlineKeyboardButton("سناب جات", callback_data="info_snap")
-    btn_tw = InlineKeyboardButton("تويتر", callback_data="info_tw")
+    btn_snap = InlineKeyboardButton("سناب شات", callback_data="info_snap")
+    btn_tw = InlineKeyboardButton("تويتر (X)", callback_data="info_tw")
     btn_pin = InlineKeyboardButton("بنترست", callback_data="info_pin")
     btn_stats = InlineKeyboardButton("📊 إحصائياتي", callback_data="info_stats")
-    btn_add = InlineKeyboardButton("➕ أضف البوت لمجموعتك", url=f"https://t.me/{(await bot.get_me()).username}?startgroup=true")
+    
+    bot_info = await bot.get_me()
+    btn_add = InlineKeyboardButton("➕ أضف البوت لمجموعتك", url=f"https://t.me/{bot_info.username}?startgroup=true")
 
     markup.add(btn_yt)
     markup.add(btn_ig, btn_fb)
