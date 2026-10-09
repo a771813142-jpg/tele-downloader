@@ -4,7 +4,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
 
-BOT_TOKEN = "8950979397:AAFDIKlzr-aGl6i_YTPmQOG8W66FnHee2hY"
+BOT_TOKEN = "8950979397:AAFQF-5yTZO6oa_siI7tY6Owvij2av_DDsA"
 bot = AsyncTeleBot(BOT_TOKEN)
 
 DOWNLOAD_DIR = "downloads"
