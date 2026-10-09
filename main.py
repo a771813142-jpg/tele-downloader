@@ -21,13 +21,13 @@ def start_health_server():
     server = HTTPServer(("0.0.0.0", port), HealthHandler)
     server.serve_forever()
 
-BOT_TOKEN = "8950979397:AAFQF-5yTZO6oa_siI7tY6Owvij2av_DDsA"
+# التوكن الجديد المؤمن
+BOT_TOKEN = "8950979397:AAFauKlk5KBSmxxlLBA13Cwj55gJgf7am4U"
 bot = AsyncTeleBot(BOT_TOKEN)
 
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-# حفظ الروابط لتشغيل خيارات HD و MP3
 user_urls = {}
 
 @bot.message_handler(commands=['start'])
